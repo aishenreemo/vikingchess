@@ -29,7 +29,6 @@ pub fn cursor_position_system(
         return Err("Error while converting viewport vector to 2d world.".into());
     };
 
-    info!("{world_position:?}");
     res_cursor_position.0 = world_position;
     Ok(())
 }

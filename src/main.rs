@@ -1,5 +1,7 @@
 use bevy::app::PluginGroupBuilder;
 use bevy::prelude::*;
+use board::BoardComponent;
+use board::BoardPlugin;
 use cursor::CursorPositionPlugin;
 
 mod board;
@@ -9,8 +11,8 @@ fn main() {
     App::new()
         .add_plugins(default_plugins())
         .add_plugins(CursorPositionPlugin)
+        .add_plugins(BoardPlugin)
         .add_systems(Startup, setup)
-        .add_systems(PostStartup, board::spawn_board_system)
         .run();
 }
 
@@ -36,5 +38,8 @@ fn window_plugin() -> WindowPlugin {
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2d);
-    commands.spawn(board::Board::new(550., 11));
+    commands.spawn((
+        BoardComponent::new(550.),
+        Transform::from_xyz(100., 0., 0.)
+    ));
 }
