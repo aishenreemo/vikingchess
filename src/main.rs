@@ -1,6 +1,6 @@
 use bevy::app::PluginGroupBuilder;
 use bevy::prelude::*;
-use board::BoardComponent;
+use board::BoardMarker;
 use board::BoardPlugin;
 use cursor::CursorPositionPlugin;
 
@@ -38,8 +38,5 @@ fn window_plugin() -> WindowPlugin {
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2d);
-    commands.spawn((
-        BoardComponent::new(550.),
-        Transform::from_xyz(100., 0., 0.)
-    ));
+    commands.spawn((BoardMarker::new(550.), Transform::from_xyz(100., 0., 0.)));
 }
