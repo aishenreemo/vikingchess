@@ -7,7 +7,7 @@
 @fragment
 fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     let uv = mesh.uv;
-    let scale = 11.0;
+    let scale = 9.0;
 
     let scaled_uv = uv * scale;
 
@@ -16,10 +16,10 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
 
     let checkerboard_color = mix(light_color, dark_color, f32(u32(grid_x + grid_y) % 2u));
     
-    let is_corner_x = (grid_x == 0.0) || (grid_x == 10.0);
-    let is_corner_y = (grid_y == 0.0) || (grid_y == 10.0);
-    let is_center_x = (grid_x == 5.0);
-    let is_center_y = (grid_y == 5.0);
+    let is_corner_x = (grid_x == 0.0) || (grid_x == 8.0);
+    let is_corner_y = (grid_y == 0.0) || (grid_y == 8.0);
+    let is_center_x = (grid_x == 4.0);
+    let is_center_y = (grid_y == 4.0);
     
     let is_special_tile = (is_corner_x && is_corner_y) || (is_center_x && is_center_y);
     

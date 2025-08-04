@@ -120,7 +120,7 @@ fn on_add_piece(
         let sprite = Sprite {
             image: texture.clone(),
             texture_atlas: Some(texture_atlas),
-            custom_size: Some(Vec2::splat(board.length / 11. * 0.9)),
+            custom_size: Some(Vec2::splat(board.length / Bitboard::BOARD_LENGTH as f32 * 0.9)),
             ..default()
         };
 
