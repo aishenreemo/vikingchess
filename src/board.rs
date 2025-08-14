@@ -4,10 +4,7 @@ use bevy::render::render_resource::AsBindGroup;
 use bevy::render::render_resource::ShaderRef;
 use bevy::sprite::Material2d;
 use bevy::sprite::Material2dPlugin;
-use engine::Bitboard;
-use engine::Board;
-use engine::Piece;
-use engine::Square;
+use engine::prelude::*;
 
 use crate::cursor::CursorPosition;
 
@@ -90,7 +87,11 @@ pub struct PieceMarker {
 
 impl PieceMarker {
     pub fn new(piece: Piece, square: Square, layout: Handle<TextureAtlasLayout>) -> Self {
-        Self { variant: piece, square, layout }
+        Self {
+            variant: piece,
+            square,
+            layout,
+        }
     }
 }
 
@@ -200,4 +201,3 @@ fn square_to_xy(square: Square, board_size: f32) -> (f32, f32) {
 
     (x, y)
 }
-
