@@ -9,4 +9,4 @@ engine = { path = "./engine" }
 
 [workspace]
 resolver = "3"
-members = ["engine"]
+members = ["engine", "magics"]
