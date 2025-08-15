@@ -26,7 +26,7 @@ fn window_plugin() -> WindowPlugin {
         name: Some("Bevy".to_owned()),
         resolution: (800., 600.).into(),
         resizable: false,
-        decorations: false,
+        position: WindowPosition::Centered(MonitorSelection::Primary),
         ..default()
     };
 
