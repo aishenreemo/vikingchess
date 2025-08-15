@@ -1,136 +1,95 @@
+use std::collections::HashMap;
+use std::fs;
+use std::fs::File;
+use std::io::Write;
+use std::path::Path;
+
+use engine::prelude::MagicTable;
 use engine::VikingChessResult;
 use engine::prelude::Bitboard;
 use engine::prelude::Mask;
 use engine::prelude::Square;
 use rand::RngCore;
-use serde::Serialize;
-use std::io::{self, Write};
-use std::time::Instant;
+use rayon::iter::IntoParallelIterator;
+use rayon::iter::ParallelIterator;
 
 fn main() -> VikingChessResult<()> {
-    let magic_table = MagicTable::new()?;
-    println!("{magic_table:?}");
+    let magics_array = MagicTable::from(magic_table());
+
+    let ron_string = ron::to_string(&magics_array)?;
+    let file_path = Path::new("./dist/magics.ron");
+
+    if let Some(parent_dir) = file_path.parent() {
+        fs::create_dir_all(parent_dir)?;
+    }
+
+    let mut file = File::create(file_path)?;
+    file.write_all(ron_string.as_bytes())?;
+
+    println!("Successfully generated and saved magic masks to magics.ron");
+
     Ok(())
 }
 
-#[derive(Debug, Clone, Serialize)]
-struct MagicTable {
-    #[serde(with = "serde_arrays")]
-    magics: [u64; Bitboard::TOTAL_SQUARES as usize],
-    #[serde(with = "serde_arrays")]
-    offsets: [usize; Bitboard::TOTAL_SQUARES as usize],
-    #[serde(with = "serde_arrays")]
-    shifts: [u8; Bitboard::TOTAL_SQUARES as usize],
-    attacks: Vec<Mask>,
+fn blockers_patterns(mask: Mask) -> Vec<Mask> {
+    let indeces: Vec<u128> = (0..128).filter(|&i| (mask.0 >> i) & 1 == 1).collect();
+    let indeces_len = indeces.len();
+    let patterns_len = 1 << indeces_len;
+    let to_mask = |i: u128| (0..indeces_len).fold(Mask(0), |a, b| a | Mask(((i >> b) & 1) << indeces[b]));
+
+    (0..patterns_len).map(to_mask).collect()
 }
 
-impl MagicTable {
-    pub fn new() -> VikingChessResult<Self> {
-        let mut magics = [0u64; Bitboard::TOTAL_SQUARES as usize];
-        let mut offsets = [0usize; Bitboard::TOTAL_SQUARES as usize];
-        let mut shifts = [0u8; Bitboard::TOTAL_SQUARES as usize];
-        let mut attacks = Vec::new();
-        let mut current_offset = 0;
-        
-        let start_time = Instant::now();
-        print!("\x1b[?25l"); // Hide cursor
-        println!("Generating magic bitboard lookup table for rooks...");
+fn magic_table() -> Vec<(Mask, HashMap<Mask, Mask>)> {
+    (0..Bitboard::TOTAL_SQUARES)
+        .into_par_iter()
+        .map(|i| {
+            let shift = MagicTable::SHIFTS[i];
+            let square = Square::try_from(i).expect("Unable to convert integer to square.");
+            let mask = Bitboard::blockers(square);
+            let patterns = blockers_patterns(mask);
+            let len = patterns.len();
 
-        for i in 0..Bitboard::TOTAL_SQUARES {
-            let elapsed = start_time.elapsed();
-            let progress = (i as f32 + 1.0) / Bitboard::TOTAL_SQUARES as f32 * 100.0;
-            print!("\r\x1b[2KProgress: {:>5.1}% | Square: {:<2} ({}/{}) | Relevant bits: {} | Time: {:.2}s",
-                   progress, i, i + 1, Bitboard::TOTAL_SQUARES, 
-                   Bitboard::moves(Square::try_from(i)?).count_ones(),
-                   elapsed.as_secs_f32());
-            io::stdout().flush().unwrap();
-            
-            let square = Square::try_from(i)?;
-            let blocker_mask = Bitboard::moves(square);
-
-            let relevant_bits = blocker_mask.count_ones();
-            let size = 1 << relevant_bits;
-
-            let all_blockers = MagicTable::every_blockers(blocker_mask);
-            let mut attacks_for_square = vec![Mask(0); size];
-
-            let magic = MagicTable::find_magic_number(square, blocker_mask, &all_blockers, &mut attacks_for_square)?;
-
-            magics[i as usize] = magic;
-            offsets[i as usize] = current_offset;
-            shifts[i as usize] = 64 - relevant_bits as u8;
-
-            attacks.extend(attacks_for_square);
-            current_offset += size;
-        }
-
-        println!("\r\x1b[2KGeneration complete! Total time: {:.2}s", start_time.elapsed().as_secs_f32());
-        print!("\x1b[?25h");
-
-        Ok(MagicTable {
-            magics,
-            offsets,
-            shifts,
-            attacks,
+            let result = magic_entry(shift, square, patterns);
+            println!("Success ({}) [{}/{}]: {:?}", len, i, Bitboard::TOTAL_SQUARES, result.0);
+            result
         })
-    }
+        .collect()
+}
 
-    fn every_blockers(mask: Mask) -> Vec<Mask> {
-        let mut indeces = vec![];
+fn magic_entry(shift: u32, square: Square, patterns: Vec<Mask>) -> (Mask, HashMap<Mask, Mask>) {
+    let mut used = HashMap::<Mask, Mask>::new();
+    let mut magic: u128 = sparse_random_u128();
 
-        for i in 0..Bitboard::TOTAL_SQUARES {
-            if (mask.0 >> i) & 1 == 1 {
-                indeces.push(i);
+    loop {
+        let mut success = true;
+        for pattern in patterns.iter() {
+            let index = Mask(pattern.wrapping_mul(magic) >> (128 - shift));
+            let moves = Bitboard::legal_moves(square, *pattern);
+            if !used.contains_key(&index) {
+                used.insert(index, moves);
+            } else if used.get(&index) != Some(&moves) {
+                success = false;
+                break;
             }
         }
 
-        let patterns_len = 1 << indeces.len();
-        let mut out = vec![Mask(0); patterns_len];
-        for pi in 0..patterns_len {
-            for bi in 0..indeces.len() {
-                let bit = (pi >> bi) & 1;
-                out[pi as usize].0 |= (bit as u128) << indeces[bi];
-            }
+        if success {
+            break;
         }
-        out
+
+        magic = sparse_random_u128();
+        used.clear();
     }
 
-    fn find_magic_number(
-        square: Square,
-        blocker_mask: Mask,
-        all_blockers: &[Mask],
-        attacks_for_square: &mut [Mask],
-    ) -> VikingChessResult<u64> {
-        let mut rng = rand::rng();
-        let relevant_bits = blocker_mask.count_ones();
-        let size = 1 << relevant_bits;
+    (Mask(magic), used)
+}
 
-        loop {
-            let magic: u64 = rng.next_u64();
-            println!("\rTrying {magic}");
-            let mut used_indices = vec![false; size];
-            let mut unique = true;
+pub fn sparse_random_u128() -> u128 {
+    let mut rng = rand::rng();
+    let num1: u128 = rng.next_u64() as u128 | ((rng.next_u64() as u128) << 64);
+    let num2: u128 = rng.next_u64() as u128 | ((rng.next_u64() as u128) << 64);
+    let num3: u128 = rng.next_u64() as u128 | ((rng.next_u64() as u128) << 64);
 
-            for &blockers in all_blockers.iter() {
-                let index = ((blockers.0 * magic as u128) >> (64 - relevant_bits)) as usize;
-                let index = index % used_indices.len();
-
-                if used_indices[index] {
-                    unique = false;
-                    println!("bruh {index}");
-                    break;
-                }
-
-                used_indices[index] = true;
-
-                let legal_moves = Bitboard::legal_moves(square, blockers);
-                attacks_for_square[index] = legal_moves;
-            }
-
-            if unique {
-                println!("\rMagic accepted! {magic}");
-                return Ok(magic);
-            }
-        }
-    }
+    num1 & num2 & num3
 }

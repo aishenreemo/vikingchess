@@ -3,9 +3,12 @@ use bevy::prelude::*;
 use board::BoardMarker;
 use board::BoardPlugin;
 use cursor::CursorPositionPlugin;
+use magics::MagicTableAsset;
+use magics::MagicTableLoader;
 
 mod board;
 mod cursor;
+mod magics;
 
 fn main() {
     App::new()
@@ -13,6 +16,8 @@ fn main() {
         .add_plugins(CursorPositionPlugin)
         .add_plugins(BoardPlugin)
         .add_systems(Startup, setup)
+        .init_asset::<MagicTableAsset>()
+        .init_asset_loader::<MagicTableLoader>()
         .run();
 }
 

@@ -7,6 +7,7 @@ use bevy::sprite::Material2dPlugin;
 use engine::prelude::*;
 
 use crate::cursor::CursorPosition;
+use crate::magics::MagicTableAsset;
 
 pub struct BoardPlugin;
 impl Plugin for BoardPlugin {
@@ -47,20 +48,26 @@ impl Material2d for BoardMaterial {
     }
 }
 
-#[derive(Component, Default, Deref, DerefMut)]
+#[derive(Component, Deref, DerefMut, Default)]
 pub struct BoardState(Board);
+
+#[allow(unused)]
+#[derive(Component)]
+pub struct MagicTableMarker(pub Handle<MagicTableAsset>);
 
 fn on_add_board(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<BoardMaterial>>,
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+    asset_server: Res<AssetServer>,
     q_board: Query<(Entity, &BoardMarker, &BoardState), Added<BoardMarker>>,
 ) -> Result {
     let layout = texture_atlas_layouts.add(TextureAtlasLayout::from_grid(UVec2::splat(64), 3, 1, None, None));
 
     for (entity, board, state) in q_board.iter() {
         commands.entity(entity).insert((
+            MagicTableMarker(asset_server.load("magics.ron")),
             Mesh2d(meshes.add(Rectangle::new(board.length, board.length))),
             MeshMaterial2d(materials.add(BoardMaterial {
                 light_color: Color::hsla(90., 0.7, 0.8, 1.0).to_linear(),
