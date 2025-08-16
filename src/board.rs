@@ -183,13 +183,16 @@ fn on_drag(
 fn on_drag_end(
     trigger: Trigger<Pointer<DragEnd>>,
     mut q_piece: Query<(&mut Transform, &mut PieceMarker, &ChildOf), With<PieceMarker>>,
-    mut q_board: Query<(&BoardMarker, &CursorState, &mut BoardState), With<BoardMarker>>,
+    mut q_board: Query<(&BoardMarker, &CursorState, &MagicTableMarker, &mut BoardState), With<BoardMarker>>,
+    tables: Res<Assets<MagicTableAsset>>,
 ) -> Result {
     let (mut transform, mut piece, childof) = q_piece.get_mut(trigger.target())?;
-    let (board, cursor_state, mut state) = q_board.get_mut(childof.parent())?;
+    let (board, cursor_state, magic_table, mut state) = q_board.get_mut(childof.parent())?;
+    let magic_table = tables.get(&magic_table.0).map(|v| &v.0);
 
     if let Some(square) = cursor_state.hovered_square {
-        if state.move_piece(piece.variant, piece.square, square).is_ok() {
+        let result = state.move_piece(piece.variant, piece.square, square, magic_table);
+        if result.is_ok() {
             piece.square = square;
         }
     }
