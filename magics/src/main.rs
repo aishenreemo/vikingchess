@@ -1,3 +1,4 @@
+use std::collections::hash_map::Entry::Vacant;
 use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
@@ -66,8 +67,8 @@ fn magic_entry(shift: u32, square: Square, patterns: Vec<Mask>) -> (Mask, HashMa
         for pattern in patterns.iter() {
             let index = Mask(pattern.wrapping_mul(magic) >> (128 - shift));
             let moves = Bitboard::legal_moves(square, *pattern);
-            if !used.contains_key(&index) {
-                used.insert(index, moves);
+            if let Vacant(e) = used.entry(index) {
+                e.insert(moves);
             } else if used.get(&index) != Some(&moves) {
                 success = false;
                 break;

@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity)]
+
 use bevy::prelude::*;
 use bevy::reflect::TypePath;
 use bevy::render::render_resource::AsBindGroup;

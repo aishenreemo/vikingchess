@@ -24,8 +24,8 @@ pub enum MagicTableLoaderError {
 impl fmt::Display for MagicTableLoaderError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            MagicTableLoaderError::Io(err) => write!(f, "Could not load asset: {}", err),
-            MagicTableLoaderError::RonSpannedError(err) => write!(f, "Could not parse RON: {}", err),
+            MagicTableLoaderError::Io(err) => write!(f, "Could not load asset: {err}"),
+            MagicTableLoaderError::RonSpannedError(err) => write!(f, "Could not parse RON: {err}"),
         }
     }
 }
