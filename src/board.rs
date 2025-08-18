@@ -194,7 +194,8 @@ fn on_drag_end(
     let magic_table = tables.get(&magic_table.0).map(|v| &v.0);
 
     if let Some(square) = cursor_state.hovered_square {
-        let result = state.move_piece(piece.variant, piece.square, square, magic_table);
+        let action = Action::new(piece.variant, piece.square, square);
+        let result = state.move_piece(action, magic_table);
         if result.is_ok() {
             piece.square = square;
         }
