@@ -170,13 +170,16 @@ fn on_cursor_move(
 fn on_drag(
     trigger: Trigger<Pointer<Drag>>,
     res_curpos: Res<CursorPosition>,
-    mut q_piece: Query<(&mut Transform, &ChildOf), With<PieceMarker>>,
-    q_board: Query<&Transform, (With<BoardMarker>, Without<PieceMarker>)>,
+    mut q_piece: Query<(&mut Transform, &ChildOf, &PieceMarker), With<PieceMarker>>,
+    q_board: Query<(&Transform, &BoardState), (With<BoardMarker>, Without<PieceMarker>)>,
 ) -> Result {
-    let (mut transform, childof) = q_piece.get_mut(trigger.target())?;
-    let board_transform = q_board.get(childof.parent())?;
-    transform.translation = res_curpos.0.extend(1.) - board_transform.translation;
-    transform.scale = Vec3::splat(1.1);
+    let (mut transform, childof, piece) = q_piece.get_mut(trigger.target())?;
+    let (board_transform, board_state) = q_board.get(childof.parent())?;
+    if (piece.square.mask() & board_state.0.turn_mask()) > Mask(0) {
+        transform.translation = res_curpos.0.extend(1.) - board_transform.translation;
+        transform.scale = Vec3::splat(1.1);
+    }
+
     Ok(())
 }
 
