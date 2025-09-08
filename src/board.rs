@@ -200,6 +200,12 @@ fn on_drag_end(
         let result = state.move_piece(action, magic_table);
         if result.is_ok() {
             piece.square = square;
+            for (piece, square) in state.eliminated_pieces_iter() {
+                info!("{piece:?}@{square:?}\n{}", square.mask());
+            }
+
+            state.toggle_turn();
+            state.save();
         }
     }
 
